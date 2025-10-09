@@ -3,14 +3,22 @@ from argparse import Namespace
 
 
 def build(args: Namespace):
-    model_name: str = args.model
     model_type: str = args.type
-    model_quant: str = args.quant
+
+    model_name: str = args.model
     imgsz: int = args.imgsz
+    model_quant: str = args.quant
+    model_edge: bool = args.edge
+
+    outdir = args.out
 
     if model_type in ("all", "tflite"):
         print("Building TFLite model")
         from MLBuilder.model.tflite.tflitemodel import TFLiteModel
+
+        model = TFLiteModel(model_name, imgsz, model_quant, model_edge)
+        outdir = model.build(outdir)
+        print(outdir)
     if model_type in ("all", "onnx"):
         print("Building ONNX model")
 
@@ -48,6 +56,15 @@ def main():
     )
     build_parser.add_argument(
         "--imgsz", "-i", help="Model input image size", type=int, default=640
+    )
+    build_parser.add_argument(
+        "--edge",
+        "-e",
+        action="store_true",
+        help="Compile for edge TPU when using TFLite",
+    )
+    build_parser.add_argument(
+        "--out", "-o", help="Relative model output directory", type=str, default="./"
     )
 
     run_parser = subparsers.add_parser("run")
