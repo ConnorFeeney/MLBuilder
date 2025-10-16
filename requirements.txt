@@ -8,3 +8,5 @@ onnx>=1.12.0
 onnx2tf>=1.26.3
 onnxslim>=0.1.67
 onnxruntime
+numpy
+opencv-python

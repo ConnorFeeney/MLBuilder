@@ -3,7 +3,7 @@ from functools import wraps
 from typing import Union
 
 
-def allow(*allowed_modes):
+def allow(*allowed_modes: str):
     def decorator(func):
         @wraps(func)
         def wrapper(self, *args, **kwargs):
@@ -51,17 +51,26 @@ class MLModel(ABC):
             raise ValueError(str(e))
 
     @property
-    @abstractmethod
     def model_type(self) -> str:
-        return "pt"
+        return self._model_type
 
     @abstractmethod
-    def __init__(self, path: str, imgsz: int, quant: Union[str, None]):
+    def __init__(self, path: str):
         self.path: str = path
-        self.quant: Union[str, None] = quant
-        self.imgsz: Union[int, None] = imgsz
+        self._model_type = MLModel.get_model_type(path)
 
     @allow("pt")
     @abstractmethod
-    def build(self, outdir: str, data: str = "coco8.yaml") -> str:
+    def build(
+        self,
+        outdir: str,
+        imgsz: int,
+        quant: Union[str, None],
+        data: str = "coco8.yaml",
+    ) -> str:
+        pass
+
+    @disallow("pt")
+    @abstractmethod
+    def allocate(self):
         pass
