@@ -53,21 +53,30 @@ def main():
 
     cap = cv2.VideoCapture(video_source)
 
+    if not cap.isOpened():
+        print("Error: Could not open video stream.")
+        exit()
+
+    max_skips = 5
+    frame_skip = 0
+
     from MLBuilder.model.tflite.tflitemodel import TFLiteModel
 
     m = TFLiteModel(model_path)
     m.allocate(tpu=use_tpu)
 
-    if not cap.isOpened():
-        print("Error: Could not open video stream.")
-        exit()
-
     while True:
         ret, frame = cap.read()
 
         if not ret:
-            print("End of frame stream.")
-            break
+            frame_skip += 1
+            print(f"Frame Skip ({frame_skip}/{max_skips}): Attempting Video Reset")
+            if frame_skip >= max_skips:
+                print("Max Skips Reached, Exiting")
+                break
+            cap = cv2.VideoCapture(video_source)
+            continue
+        frame_skip = 0
 
         out = m.run_inference(frame, nms=use_nms, tol=tolerance)
 
