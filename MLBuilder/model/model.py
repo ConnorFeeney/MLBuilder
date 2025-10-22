@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from functools import wraps
 from typing import Union
+import os
 
 
 def allow(*allowed_modes: str):
@@ -43,7 +44,7 @@ class MLModel(ABC):
     @staticmethod
     def get_model_type(model_name: str) -> str:
         try:
-            model_t = model_name.split(".")[1]
+            model_t = os.path.basename(model_name).split(".")[1]
             if not model_t:
                 raise ValueError(f"Cant extract model type from '{model_name}'")
             return model_t
