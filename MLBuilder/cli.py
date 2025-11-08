@@ -15,23 +15,26 @@ def build_tflite(args: Namespace):
 
     print("Building TFLite model")
     model = TFLiteModel(model_name)
-    outdir = model.build(outdir, imgsz, model_quant, data, model_edge)
-    print(f"Model saved to: {outdir}")
+    output = model.build(outdir, imgsz, model_quant, data, model_edge)
+    print(f"Model saved to: {output}")
 
 
-def build_onnx(args: Namespace):
-    """Build ONNX model with specified options."""
+def train_tflite(args: Namespace):
+    from MLBuilder.model.tflite.tflitemodel import TFLiteModel
+
     model_name: str = args.model
+    data: str = args.data
+    epoch: int = args.epoch
     imgsz: int = args.imgsz
-    opset: int = args.opset
-    simplify: bool = args.simplify
-    dynamic: bool = args.dynamic
+    outname: str = args.outname
     outdir: str = args.out
 
-    print("Building ONNX model")
-    # TODO: Implement ONNX model building
-    print(f"Model: {model_name}, Image size: {imgsz}, Opset: {opset}")
-    print(f"Simplify: {simplify}, Dynamic: {dynamic}, Output: {outdir}")
+    print("Training TFLite model")
+    model = TFLiteModel(model_name)
+    output = model.train(
+        data=data, epoch=epoch, imgsz=imgsz, outname=outname, outdir=outdir
+    )
+    print(f"Model saved to: {output}")
 
 
 def run(args: Namespace):
@@ -84,52 +87,39 @@ def main():
         "--out", "-o", help="Model output directory", type=str, default="./"
     )
 
-    # ONNX build parser
-    onnx_parser = build_subparsers.add_parser("onnx", help="Build ONNX model")
-    onnx_parser.add_argument(
-        "--model", "-m", help="Base model to convert", type=str, default="yolo11n.pt"
-    )
-    onnx_parser.add_argument(
-        "--imgsz", "-i", help="Model input image size", type=int, default=640
-    )
-    onnx_parser.add_argument(
-        "--opset",
-        help="ONNX opset version",
-        type=int,
-        default=12,
-    )
-    onnx_parser.add_argument(
-        "--simplify",
-        "-s",
-        action="store_true",
-        help="Simplify ONNX model",
-    )
-    onnx_parser.add_argument(
-        "--dynamic",
-        action="store_true",
-        help="Enable dynamic input shapes",
-    )
-    onnx_parser.add_argument(
-        "--out", "-o", help="Model output directory", type=str, default="./"
+    train_parser = subparsers.add_parser("train", help="Build models")
+    train_subparsers = train_parser.add_subparsers(
+        dest="model_type", help="Model type to train"
     )
 
-    # Run parser
-    run_parser = subparsers.add_parser("run", help="Run inference with a model")
-    run_parser.add_argument("name", help="Relative location of model", type=str)
+    tftrain_parser = train_subparsers.add_parser("tflite", help="Train tflite model")
+    tftrain_parser.add_argument(
+        "--model", "-m", help="Base model to train", type=str, default="yolo11n.pt"
+    )
+    tftrain_parser.add_argument(
+        "--data", "-d", help="Data to train off of", type=str, default="coco8.yaml"
+    )
+    tftrain_parser.add_argument(
+        "--imgsz", "-i", help="Image size", type=int, default=640
+    )
+    tftrain_parser.add_argument(
+        "--epoch", "-e", help="Epochs to train on", type=int, default=10
+    )
+    tftrain_parser.add_argument(
+        "--out", "-o", help="Output directory", type=str, default="./"
+    )
+    tftrain_parser.add_argument(
+        "--outname", "-n", help="Output name", type=str, default="model.pt"
+    )
 
     args = parser.parse_args()
 
     if args.command == "build":
         if args.model_type == "tflite":
             build_tflite(args)
-        elif args.model_type == "onnx":
-            build_onnx(args)
-        else:
-            build_parser.print_help()
-    elif args.command == "run":
-        run(args)
-    else:
-        parser.print_help()
+    elif args.command == "train":
+        if args.model_type == "tflite":
+            train_tflite(args)
 
 
 if __name__ == "__main__":

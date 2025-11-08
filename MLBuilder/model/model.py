@@ -15,7 +15,7 @@ def allow(*allowed_modes: str):
                 raise AttributeError(
                     f"Attribute '{func.__name__}' is not avalible for '{model_type}'"
                 )
-            return func(*args, **kwargs)
+            return func(self, *args, **kwargs)
 
         return wrapper
 
@@ -33,7 +33,7 @@ def disallow(*disallowed_modes):
                 raise AttributeError(
                     f"Attribute '{func.__name__}' is not avalible for '{model_type}'"
                 )
-            return func(*args, **kwargs)
+            return func(self, *args, **kwargs)
 
         return wrapper
 
@@ -75,3 +75,42 @@ class MLModel(ABC):
     @abstractmethod
     def allocate(self):
         pass
+
+    @allow("pt")
+    def train(
+        self, data: str, epoch: int, imgsz: int, outname: str, outdir: str
+    ) -> str:
+        import os
+        import shutil
+        from ultralytics import YOLO  # pyright: ignore[reportPrivateImportUsage]
+
+        if not os.path.isdir(outdir):
+            raise ValueError(f"'{outdir}' does not exsist")
+        if not os.access(outdir, os.W_OK):
+            raise RuntimeError(f"'{outdir} is not writable'")
+
+        working_dir = os.getcwd()
+        archive_dir = os.path.join(outdir, "build")
+        if not os.path.isdir(archive_dir):
+            os.mkdir(archive_dir)
+        os.chdir(archive_dir)
+
+        model = YOLO(self.path)
+        results = model.train(data=data, epochs=epoch, imgsz=imgsz)
+
+        # Get the best.pt file from the training results
+        best_model_path = os.path.join(
+            results.save_dir, "weights", "best.pt"  # type: ignore
+        )
+
+        os.chdir(working_dir)
+
+        export_dir = os.path.join(outdir, "export")
+        if not os.path.isdir(export_dir):
+            os.mkdir(export_dir)
+
+        # Copy best.pt to export dir with the specified name
+        output = os.path.join(export_dir, outname)
+        shutil.copy(best_model_path, output)
+
+        return str(output)
