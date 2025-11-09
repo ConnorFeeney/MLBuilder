@@ -2,9 +2,13 @@ from typing import Union
 import numpy as np
 import cv2
 from MLBuilder.model.model import MLModel, system, allow, disallow
-from ai_edge_litert.interpreter import Interpreter
 
-import json
+try:
+    from ai_edge_litert.interpreter import Interpreter
+
+    INTERPRETER_EXSITS = True
+except ImportError as e:
+    INTERPRETER_EXSITS = False
 
 
 class TFLiteModel(MLModel):
@@ -23,6 +27,9 @@ class TFLiteModel(MLModel):
         data: str = "coco8.yaml",
         edge: bool = False,
     ) -> str:
+        if not INTERPRETER_EXSITS:
+            raise RuntimeError("INTERPRETER_EXSITS FLASE")
+
         import os
         import shutil
         from ultralytics import YOLO  # pyright: ignore[reportPrivateImportUsage]
@@ -71,6 +78,8 @@ class TFLiteModel(MLModel):
     @disallow("pt")
     @system("linux")
     def allocate(self, tpu=False):
+        if not INTERPRETER_EXSITS:
+            raise RuntimeError("INTERPRETER_EXSITS FLASE")
         self._intepreter = Interpreter(model_path=self.path)
         self._intepreter.allocate_tensors()
 
@@ -84,6 +93,8 @@ class TFLiteModel(MLModel):
 
     @system("linux")
     def run_inference(self, data: np.ndarray, nms=True, tol=0.25):
+        if not INTERPRETER_EXSITS:
+            raise RuntimeError("INTERPRETER_EXSITS FLASE")
         img = cv2.cvtColor(data, cv2.COLOR_BGR2RGB)
 
         input_h, input_w = self._input_details[0]["shape"][1:3]
