@@ -100,7 +100,6 @@ class MLModel(ABC):
         pass
 
     @allow("pt")
-    @system("linux")
     def train(
         self, data: str, epoch: int, imgsz: int, outname: str, outdir: str
     ) -> str:
