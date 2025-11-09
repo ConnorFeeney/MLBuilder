@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from functools import wraps
 from typing import Union
 import os
+import platform
 
 
 def allow(*allowed_modes: str):
@@ -40,6 +41,25 @@ def disallow(*disallowed_modes):
     return decorator
 
 
+def system(required_system: str):
+    required_system = required_system.lower()
+
+    def decorator(func):
+        @wraps(func)
+        def wrapper(self, *args, **kwargs):
+            current_system = platform.system().lower()  # "linux", "windows", "darwin"
+            if current_system != required_system:
+                raise RuntimeError(
+                    f"Method '{func.__name__}' requires {required_system.capitalize()}, "
+                    f"but current system is {current_system.capitalize()}"
+                )
+            return func(self, *args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+
 class MLModel(ABC):
     @staticmethod
     def get_model_type(model_name: str) -> str:
@@ -57,26 +77,30 @@ class MLModel(ABC):
 
     @abstractmethod
     def __init__(self, path: str):
+        import os
+
         self.path: str = path
         self._model_type = MLModel.get_model_type(path)
 
     @allow("pt")
+    @system("linux")
     @abstractmethod
-    def build(
-        self,
-        outdir: str,
-        imgsz: int,
-        quant: Union[str, None],
-        data: str = "coco8.yaml",
-    ) -> str:
+    def build(self) -> str:
         pass
 
     @disallow("pt")
+    @system("linux")
     @abstractmethod
     def allocate(self):
         pass
 
+    @system("linux")
+    @abstractmethod
+    def run_inference(self):
+        pass
+
     @allow("pt")
+    @system("linux")
     def train(
         self, data: str, epoch: int, imgsz: int, outname: str, outdir: str
     ) -> str:
@@ -89,14 +113,22 @@ class MLModel(ABC):
         if not os.access(outdir, os.W_OK):
             raise RuntimeError(f"'{outdir} is not writable'")
 
+        data = os.path.abspath(data) if data != "coco8.yaml" else data
+        outdir = os.path.abspath(outdir)
+
         working_dir = os.getcwd()
         archive_dir = os.path.join(outdir, "build")
         if not os.path.isdir(archive_dir):
             os.mkdir(archive_dir)
         os.chdir(archive_dir)
 
-        model = YOLO(self.path)
-        results = model.train(data=data, epochs=epoch, imgsz=imgsz)
+        model = YOLO(os.path.abspath(self.path))
+        results = model.train(
+            data=data,
+            epochs=epoch,
+            imgsz=imgsz,
+            project=os.path.join(archive_dir, "out"),
+        )
 
         # Get the best.pt file from the training results
         best_model_path = os.path.join(

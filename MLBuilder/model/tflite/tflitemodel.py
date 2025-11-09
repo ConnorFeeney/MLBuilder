@@ -1,7 +1,7 @@
 from typing import Union
 import numpy as np
 import cv2
-from MLBuilder.model.model import MLModel
+from MLBuilder.model.model import MLModel, system, allow, disallow
 from ai_edge_litert.interpreter import Interpreter
 
 import json
@@ -13,6 +13,8 @@ class TFLiteModel(MLModel):
         self._normalize = False
         self._started = False
 
+    @allow("pt")
+    @system("linux")
     def build(
         self,
         outdir: str,
@@ -30,13 +32,16 @@ class TFLiteModel(MLModel):
         if not os.access(outdir, os.W_OK):
             raise RuntimeError(f"'{outdir} is not writable'")
 
+        outdir = os.path.abspath(outdir)
+        data = os.path.abspath(data) if data != "coco8.yaml" else data
+
         working_dir = os.getcwd()
         archive_dir = os.path.join(outdir, "build")
         if not os.path.isdir(archive_dir):
             os.mkdir(archive_dir)
         os.chdir(archive_dir)
 
-        model = YOLO(self.path)
+        model = YOLO(os.path.abspath(self.path))
         if not edge:
             model_out = model.export(
                 format="tflite",
@@ -45,9 +50,12 @@ class TFLiteModel(MLModel):
                 int8=True if quant == "int8" else False,
                 nms=True,
                 data=data,
+                project=os.path.join(archive_dir, "out"),
             )
         else:
-            model_out = model.export(format="edgetpu", imgsz=imgsz)
+            model_out = model.export(
+                format="edgetpu", imgsz=imgsz, project=os.path.join(archive_dir, "out")
+            )
 
         model_dir = os.path.join(archive_dir, model_out)
         os.chdir(working_dir)
@@ -60,6 +68,8 @@ class TFLiteModel(MLModel):
         model_out = os.path.join(export_dir, os.path.basename(model_dir))
         return model_out
 
+    @disallow("pt")
+    @system("linux")
     def allocate(self, tpu=False):
         self._intepreter = Interpreter(model_path=self.path)
         self._intepreter.allocate_tensors()
@@ -72,6 +82,7 @@ class TFLiteModel(MLModel):
 
         self._started = True
 
+    @system("linux")
     def run_inference(self, data: np.ndarray, nms=True, tol=0.25):
         img = cv2.cvtColor(data, cv2.COLOR_BGR2RGB)
 
