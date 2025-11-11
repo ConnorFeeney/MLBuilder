@@ -28,11 +28,17 @@ def train_tflite(args: Namespace):
     imgsz: int = args.imgsz
     outname: str = args.outname
     outdir: str = args.out
+    resume: bool = args.resume
 
     print("Training TFLite model")
     model = TFLiteModel(model_name)
     output = model.train(
-        data=data, epoch=epoch, imgsz=imgsz, outname=outname, outdir=outdir
+        data=data,
+        epoch=epoch,
+        imgsz=imgsz,
+        outname=outname,
+        outdir=outdir,
+        resume=resume,
     )
     print(f"Model saved to: {output}")
 
@@ -110,6 +116,13 @@ def main():
     )
     tftrain_parser.add_argument(
         "--outname", "-n", help="Output name", type=str, default="model.pt"
+    )
+
+    tftrain_parser.add_argument(
+        "--resume",
+        "-r",
+        help="Attempt to resume training",
+        action="store_true",
     )
 
     args = parser.parse_args()

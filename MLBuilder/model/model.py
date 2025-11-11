@@ -102,7 +102,7 @@ class MLModel(ABC):
     @allow("pt")
     @system("linux")
     def train(
-        self, data: str, epoch: int, imgsz: int, outname: str, outdir: str
+        self, data: str, epoch: int, imgsz: int, resume: bool, outname: str, outdir: str
     ) -> str:
         import os
         import shutil
@@ -115,19 +115,25 @@ class MLModel(ABC):
 
         data = os.path.abspath(data) if data != "coco8.yaml" else data
         outdir = os.path.abspath(outdir)
+        model_path = os.path.abspath(self.path)
 
         working_dir = os.getcwd()
         archive_dir = os.path.join(outdir, "build")
         if not os.path.isdir(archive_dir):
             os.mkdir(archive_dir)
         os.chdir(archive_dir)
-
-        model = YOLO(os.path.abspath(self.path))
+        try:
+            model = YOLO(model_path)
+        except:
+            model = YOLO(self.path)
         results = model.train(
             data=data,
             epochs=epoch,
             imgsz=imgsz,
             project=os.path.join(archive_dir, "out"),
+            batch=20,
+            workers=1,
+            resume=resume,
         )
 
         # Get the best.pt file from the training results

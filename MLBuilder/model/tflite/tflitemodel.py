@@ -41,6 +41,7 @@ class TFLiteModel(MLModel):
 
         outdir = os.path.abspath(outdir)
         data = os.path.abspath(data) if data != "coco8.yaml" else data
+        model_path = os.path.abspath(self.path)
 
         working_dir = os.getcwd()
         archive_dir = os.path.join(outdir, "build")
@@ -48,7 +49,10 @@ class TFLiteModel(MLModel):
             os.mkdir(archive_dir)
         os.chdir(archive_dir)
 
-        model = YOLO(os.path.abspath(self.path))
+        try:
+            model = YOLO(model_path)
+        except:
+            model = YOLO(self.path)
         if not edge:
             model_out = model.export(
                 format="tflite",
