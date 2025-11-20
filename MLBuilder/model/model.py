@@ -88,15 +88,9 @@ class MLModel(ABC):
     def build(self) -> str:
         pass
 
-    @disallow("pt")
     @system("linux")
     @abstractmethod
-    def allocate(self):
-        pass
-
-    @system("linux")
-    @abstractmethod
-    def run_inference(self):
+    def detect(self):
         pass
 
     @allow("pt")

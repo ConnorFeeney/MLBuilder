@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Literal, Optional, Union
 import numpy as np
 import cv2
 from MLBuilder.model.model import MLModel, system, allow, disallow
@@ -23,7 +23,7 @@ class TFLiteModel(MLModel):
         self,
         outdir: str,
         imgsz: int,
-        quant: Union[str, None],
+        quant: Optional[Literal["fp32", "fp16", "int8"]],
         data: str = "coco8.yaml",
         edge: bool = False,
     ) -> str:
@@ -96,7 +96,7 @@ class TFLiteModel(MLModel):
         self._started = True
 
     @system("linux")
-    def run_inference(self, data: np.ndarray, nms=True, tol=0.25):
+    def detect(self, data: np.ndarray, nms=False, tol=0.25):
         if not INTERPRETER_EXSITS:
             raise RuntimeError("INTERPRETER_EXSITS FLASE")
         img = cv2.cvtColor(data, cv2.COLOR_BGR2RGB)
@@ -144,7 +144,7 @@ class TFLiteModel(MLModel):
         self._intepreter.invoke()
         raw_out = self._intepreter.get_tensor(self._output_detail[0]["index"])
 
-        if nms:
+        if not nms:
             detections = raw_out[0]
             valid = detections[detections[:, 4] > tol]
 

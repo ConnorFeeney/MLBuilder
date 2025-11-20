@@ -31,7 +31,7 @@ def main():
         "--tpu",
         "-t",
         help="Attempt to delegate to Coral TPU (Will fall back to cpu if not edge compiled)",
-        action="store_false",
+        action="store_true",
     )
     parser.add_argument(
         "--confidence",
@@ -78,7 +78,7 @@ def main():
             continue
         frame_skip = 0
 
-        out = m.run_inference(frame, nms=use_nms, tol=tolerance)
+        out = m.detect(frame, nms=use_nms, tol=tolerance)
 
         for detection in out:
             bbox = detection["bbox"]
