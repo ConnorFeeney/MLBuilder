@@ -15,7 +15,13 @@ def build_tflite(args: Namespace):
 
     print("Building TFLite model")
     model = TFLiteModel(model_name)
-    output = model.build(outdir, imgsz, model_quant, data, model_edge)
+    output = model.build(
+        outdir,
+        imgsz,
+        model_quant if model_quant in ("fp32", "fp16", "int8") else "fp32",
+        data,
+        model_edge,
+    )
     print(f"Model saved to: {output}")
 
 

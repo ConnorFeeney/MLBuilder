@@ -1,7 +1,7 @@
 from typing import Literal, Optional, Union
 import numpy as np
 import cv2
-from MLBuilder.model.model import MLModel, system, allow, disallow
+from MLBuilder.model.mlmodel import MLModel, system, allow, disallow
 
 try:
     from ai_edge_litert.interpreter import Interpreter
